@@ -1,0 +1,5 @@
+.env
+venv/
+last_snapshot.json
+agent.log
+__pycache__/
