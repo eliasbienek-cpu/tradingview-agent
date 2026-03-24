@@ -141,41 +141,42 @@ def fetch_screener_data() -> list[dict]:
     Fetch current CEX coin screener data from TradingView.
     Returns a list of dicts sorted by market cap (rank = index).
     """
-    # Support both old (CryptoScreener) and new (CoinScreener) tvscreener versions
-    if hasattr(tvs, "CoinScreener"):
-        screener = tvs.CoinScreener()
-        Field = tvs.CoinField
-    elif hasattr(tvs, "CryptoScreener"):
-        screener = tvs.CryptoScreener()
-        Field = tvs.CryptoField
-    else:
-        raise RuntimeError("tvscreener has no CoinScreener or CryptoScreener")
-
-    # Select columns
-    screener.select(
-        Field.NAME,
-        Field.CLOSE,
-        Field.CHANGE,
-        Field.CHANGE_1W,
-        Field.VOLUME,
-        Field.MARKET_CAP,
-        Field.RECOMMEND_ALL,
-    )
-
+    screener = tvs.CryptoScreener()
     screener.set_range(0, SCREENER_LIMIT)
     df = screener.get()
 
+    # Map column names (the library returns human-readable labels)
+    col_map = {}
+    for col in df.columns:
+        cl = col.lower()
+        if col == "Symbol":
+            col_map["symbol"] = col
+        elif col == "Name":
+            col_map["name"] = col
+        elif cl == "price" or cl == "close":
+            col_map["price"] = col
+        elif col == "Change %" or cl == "change %":
+            col_map["change_24h"] = col
+        elif col == "Change 1W, %" or "1w" in cl:
+            col_map["change_1w"] = col
+        elif col == "Volume" or cl == "volume":
+            col_map["volume"] = col
+        elif col == "Market Capitalization" or "market cap" in cl:
+            col_map["market_cap"] = col
+        elif col == "Technical Rating" or "technical rating" in cl:
+            col_map["recommendation"] = col
+
     coins = []
-    for idx, row in df.iterrows():
+    for _, row in df.iterrows():
         coin = {
-            "symbol": str(idx) if isinstance(idx, str) else str(row.get("name", idx)),
-            "name": str(row.get("name", "")),
-            "price": float(row.get("close", 0) or 0),
-            "change_24h": float(row.get("change", 0) or 0),
-            "change_1w": float(row.get("change|1W", 0) or 0),
-            "volume": float(row.get("volume", 0) or 0),
-            "market_cap": float(row.get("market_cap", 0) or 0),
-            "recommendation": str(row.get("Recommend.All", "")),
+            "symbol": str(row.get(col_map.get("symbol", "Symbol"), "")),
+            "name": str(row.get(col_map.get("name", "Name"), "")),
+            "price": float(row.get(col_map.get("price", "Price"), 0) or 0),
+            "change_24h": float(row.get(col_map.get("change_24h", "Change %"), 0) or 0),
+            "change_1w": float(row.get(col_map.get("change_1w", "Change 1W, %"), 0) or 0),
+            "volume": float(row.get(col_map.get("volume", "Volume"), 0) or 0),
+            "market_cap": float(row.get(col_map.get("market_cap", "Market Capitalization"), 0) or 0),
+            "recommendation": str(row.get(col_map.get("recommendation", "Technical Rating"), "")),
         }
         coins.append(coin)
 
