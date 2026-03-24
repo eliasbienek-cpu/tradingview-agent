@@ -141,17 +141,25 @@ def fetch_screener_data() -> list[dict]:
     Fetch current CEX coin screener data from TradingView.
     Returns a list of dicts sorted by market cap (rank = index).
     """
-    screener = tvs.CoinScreener()
+    # Support both old (CryptoScreener) and new (CoinScreener) tvscreener versions
+    if hasattr(tvs, "CoinScreener"):
+        screener = tvs.CoinScreener()
+        Field = tvs.CoinField
+    elif hasattr(tvs, "CryptoScreener"):
+        screener = tvs.CryptoScreener()
+        Field = tvs.CryptoField
+    else:
+        raise RuntimeError("tvscreener has no CoinScreener or CryptoScreener")
 
     # Select columns
     screener.select(
-        tvs.CoinField.NAME,
-        tvs.CoinField.CLOSE,
-        tvs.CoinField.CHANGE,
-        tvs.CoinField.CHANGE_1W,
-        tvs.CoinField.VOLUME,
-        tvs.CoinField.MARKET_CAP,
-        tvs.CoinField.RECOMMEND_ALL,
+        Field.NAME,
+        Field.CLOSE,
+        Field.CHANGE,
+        Field.CHANGE_1W,
+        Field.VOLUME,
+        Field.MARKET_CAP,
+        Field.RECOMMEND_ALL,
     )
 
     screener.set_range(0, SCREENER_LIMIT)
